@@ -1,0 +1,62 @@
+#!/home/ec2-user/.local/bin/ansible-playbook
+---
+- name: Operate with tomcat docker containers
+  become: 'no'
+  hosts: all
+
+  tasks:
+    - name: Get info on tomcat container
+      docker_container_info:
+        name: tomcat-srv
+      register: result
+
+    - name: Does container exist?
+      debug:
+        msg: "The container {{ 'exists' if result.exists else 'does not exist' }}"
+
+    - name: Stop tomcat container
+      docker_container:
+        name: tomcat-srv
+        state: stopped
+      when: result.exists
+
+    - name: Remove tomcat container
+      docker_container:
+        name: tomcat-srv
+        state: absent
+      when: result.exists
+
+    - name: Remove tomcat image
+      docker_image:
+        state: absent
+        name: tomcat_srv_img
+        tag: dev
+
+    - name: copy tomcat dockerfile
+      copy:
+        src: /home/ec2-user/Dockerfile
+        dest: /home/ec2-user/Dockerfile
+        owner: ec2-user
+        group: ec2-user
+        mode: '0644'
+
+    - name: build tomcat docker image
+      docker_image:
+        name: tomcat_srv_img:dev
+        build:
+          path: /home/ec2-user/
+        source: build
+        state: present
+
+    - name: run tomcat container
+      docker_container:
+        name: tomcat-srv
+        image: tomcat_srv_img:dev
+        state: started
+        auto_remove: 'yes'
+        exposed_ports:
+        - "8080"
+        ports:
+        - "8080:8080"
+
+

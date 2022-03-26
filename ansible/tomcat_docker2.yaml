@@ -1,0 +1,33 @@
+#!/home/ec2-user/.local/bin/ansible-playbook
+---
+- name: Operate with tomcat docker containers
+  become: 'no'
+  hosts: localhost
+
+  tasks:
+    - name: Stop tomcat container
+      command: docker stop tomcat-srv
+      ignore_errors: True
+
+    - name: Remove tomcat container
+      command: docker rm tomcat-srv
+      ignore_errors: True
+
+    - name: Remove tomcat image
+      command: docker rmi tomcat_srv_img:dev
+      ignore_errors: True
+
+    - name: copy tomcat dockerfile
+      copy:
+        src: /home/ec2-user/Dockerfile
+        dest: /home/ec2-user/Dockerfile
+        owner: ec2-user
+        group: ec2-user
+        mode: '0644'
+
+    - name: build tomcat docker image
+      command: docker build -t tomcat_srv_img:dev .
+
+    - name: run tomcat container
+      command: docker run -d --rm --name tomcat-srv -p 8080:8080 tomcat_srv_img:dev
+
